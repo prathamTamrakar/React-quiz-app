@@ -1,18 +1,35 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { z } from 'zod'
+
+const emailSchema = z
+  .string()
+  .nonempty('Email is required')
+  .email('Enter a valid email address')
 
 function Welcome() {
   const navigate = useNavigate()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
+  const [emailError, setEmailError] = useState('')
+
+  const validateEmail = (value) => {
+    const result = emailSchema.safeParse(value)
+    if (!result.success) {
+      setEmailError(result.error.issues[0].message)
+      return false
+    }
+    setEmailError('')
+    return true
+  }
 
   const handleStartQuiz = () => {
-    if (name.trim() && email.trim()) {
+    if (name.trim() && validateEmail(email)) {
       navigate('/instruction', { state: { name, email } })
     }
   }
 
-  const isDisabled = !name.trim() || !email.trim()
+  const isDisabled = !name.trim() || !!emailError || !email
 
   return (
     <div className="min-h-screen flex flex-col justify-center items-center bg-linear-to-br from-blue-50 via-white to-blue-100 p-4">
@@ -51,9 +68,19 @@ function Welcome() {
               type="email"
               placeholder="example@mail.com"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+              onChange={(e) => {
+                setEmail(e.target.value)
+                validateEmail(e.target.value)
+              }}
+              className={`w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition ${
+                emailError ? 'border-red-400' : ''
+              }`}
             />
+            {emailError && (
+              <p className="text-red-500 text-sm mt-1">
+                {emailError}
+              </p>
+            )}
           </div>
 
           <div className="flex justify-center">
@@ -61,11 +88,10 @@ function Welcome() {
               type="button"
               onClick={handleStartQuiz}
               disabled={isDisabled}
-              className={`w-full md:w-auto font-semibold py-3 px-6 rounded-lg transition-all duration-300 shadow-md ${
-                isDisabled
+              className={`w-full md:w-auto font-semibold py-3 px-6 rounded-lg transition-all duration-300 shadow-md ${isDisabled
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   : 'bg-blue-700 hover:bg-blue-600 text-white hover:shadow-lg'
-              }`}
+                }`}
             >
               Start Quiz
             </button>
